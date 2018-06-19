@@ -1,3 +1,19 @@
+'''
+FunctionToIngestVPCFlowLogs
+
+Lambda Function that gets triggered on the event of a VPC Flow Log receieved
+by CloudWatch. The function adds various fields to Flow Log.
+
+Citations:
+[1]:https://aws.amazon.com/blogs/security/how-to-optimize-and-visualize-your-security-groups/
+[2]:https://mysteriouscode.io/blog/intrusion-detection-and-prevention-with-aws-lambda-and-dynamodb-streams/
+[3]:https://aws.amazon.com/blogs/security/how-to-facilitate-data-analysis-and-fulfill-security-requirements-by-using-centralized-flow-log-data/
+[4]:https://aws.amazon.com/blogs/security/how-to-visualize-and-refine-your-networks-security-by-adding-security-group-ids-to-your-vpc-flow-logs/
+
+''' 
+
+
+
 from __future__ import print_function
 import boto3
 import logging
@@ -7,18 +23,19 @@ from StringIO import StringIO
 from botocore.vendored import requests
 import datetime
 
-# Logging, Tweaks required
+# TODO: Logging, Tweaks required
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
-
 time_fmt = '%Y-%m-%d %H:%M:%S'
 
 VPC_SUBNET = "10."
+client = boto3.client('ec2')
 
-# TODO: Get from API Call POC
+
+# TODO: Get from API Call POC, https://docs.cybercure.ai/docs/blocked-ip-api
 THREAT_FEED=["173.255.238.173","186.67.91.98","79.34.201.74","104.200.20.129",
 "180.183.142.77","154.70.135.195","190.214.219.247","152.240.102.192","179.101.41.234",
 "186.101.211.202","156.197.80.109","181.199.16.111","145.131.154.236","185.200.250.155",
@@ -41,7 +58,7 @@ THREAT_FEED=["173.255.238.173","186.67.91.98","79.34.201.74","104.200.20.129",
 "159.89.54.241","69.164.204.42","217.23.9.106","177.163.222.177","186.3.158.252","186.101.139.20"]
 
 
-# TODO: Handle API Calls and Build Cached Solution For Queries
+# TODO: Handle API Calls and Build Cached Solution For Queries, to reduce latency
 ip_lookup = {"city":None,"region":None,"location": None,"country":None,"geoname":None,"inThreatFeed":False}
 
 def get_ip_info(address):
@@ -60,10 +77,36 @@ def get_ip_info(address):
         ip_lookup["location"]={"lat": json_response["latitude"],"lon": json_response["longitude"]}
         ip_lookup["country"]=str(json_response["country_name"])
         ip_lookup["geoname"]=str(json_response["location"]["geoname_id"])
-        # TODO:Placeholder for security object
-        if address in THREAT_FEED:
-            ip_lookup["inThreatFeed"]=True
     return ip_lookup
+
+NACL_ID = 'acl-0551968135f1b8eec'
+MAX_RULE = 100 
+
+def addToNACL(address):
+    next_rule=100
+    nacls = client.describe_network_acls(NetworkAclIds=[NACL_ID])
+    if len(nacls['NetworkAcls']) == 0:
+                raise Exception("No NACLs found!")
+    
+    for entry in nacls['NetworkAcls'][0]['Entries']:
+        if entry['Egress'] == False and entry['RuleAction'] == 'deny':
+            if entry['RuleNumber'] >= MAX_RULE:
+                continue
+
+            if entry['RuleNumber'] < MAX_RULE:
+                next_rule = min(next_rule, entry['RuleNumber'])
+
+    next_rule -= 1
+    res = client.create_network_acl_entry(
+        NetworkAclId=NACL_ID,
+        RuleNumber=next_rule,
+        Protocol="-1",
+        RuleAction="deny",
+        Egress=False,
+        CidrBlock=address + "/32"
+    )
+    return True
+
 
 def lambda_handler(event, context):
     #CloudWatch log data
@@ -71,7 +114,7 @@ def lambda_handler(event, context):
     
     #decode,unzip
     outEvent = gzip.GzipFile(fileobj=StringIO(outEvent.decode('base64','strict'))).read()
-    
+
     #JSON to dictionary log_data
     cleanEvent = json.loads(outEvent)
     for logEvent in cleanEvent['logEvents']:
@@ -82,10 +125,24 @@ def lambda_handler(event, context):
         logData['start']=time_start.strftime(time_fmt)
         logData['end']=time_end.strftime(time_fmt)
         logData['duration']=(time_end-time_start).total_seconds() / 60
+        client_network_interfaces = client.describe_network_interfaces(NetworkInterfaceIds=[logEvent['extractedFields']["interface_id"]])
+        logData['SGID']=client_network_interfaces['NetworkInterfaces'][0]['Groups'][0]['GroupId']
+        logData['VPC']=client_network_interfaces['NetworkInterfaces'][0]['VpcId']
+        remedyDone=False
+        # TODO:Placeholder for security object
+        if logData['srcaddr'] in THREAT_FEED:
+            logData["inThreatFeed"]=True
+            remedyDone=addToNACL(address)
+        else:
+            logData["inThreatFeed"]=False
+            
+        logData["remedyDone"]=remedyDone
+        
         if VPC_SUBNET in logData['srcaddr']:
             logData['direction']="outbound"
         else:
             logData['direction']="inbound"
             logData.update(get_ip_info(logData['srcaddr']))
+            
         logData['notification']="VPC_FLOW_LOG"
         print(json.dumps(logData))
