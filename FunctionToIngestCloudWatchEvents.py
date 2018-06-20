@@ -1,3 +1,15 @@
+'''
+FunctionToIngestCloudWatchEvent
+
+Lambda Function that gets triggered on the event of a rule configured
+in CloudWatch being invoked.
+
+Citations:
+[1]:https://github.com/awslabs/aws-security-automation
+[2]:
+[3]:
+[4]:
+''' 
 import logging
 import boto3
 import json
@@ -19,7 +31,6 @@ SECURITY_GROUP_REMEDIATE_APIS = ["AuthorizeSecurityGroupIngress","DeleteSecurity
 NACL_CHANGE_APIS = ["CreateNetworkAcl","CreateNetworkAclEntry","DeleteNetworkAcl","DeleteNetworkAclEntry",
 "ReplaceNetworkAclEntry","ReplaceNetworkAclAssociation"]
 
-
 # Network Change API Calls to Log
 NETWORK_CHANGE_APIS = ["AttachInternetGateway","AssociateRouteTable","CreateCustomerGateway",
 "CreateInternetGateway","CreateRoute","CreateRouteTable","DeleteCustomerGateway","DeleteInternetGateway",
@@ -30,9 +41,14 @@ NETWORK_CHANGE_APIS = ["AttachInternetGateway","AssociateRouteTable","CreateCust
 CLOUDTRAIL_CHANGE_APIS = ["StopLogging","DeleteTrail","UpdateTrail"]
 CLOUDTRAIL_REMEDIATE_APIS = ["StopLogging","DeleteTrail"]
 
-# Specify the required ingress permissions using the same key layout as that provided in the
-# describe_security_group API response and authorize_security_group_ingress/egress API calls.
+# Config Change API Calls to Log
+AWS_CONFIG_CHANGE_APIS = ["PutConfigurationRecorder","StopConfigurationRecorder","StopConfigurationRecorder",
+                      "PutDeliveryChannel"]
 
+# S3 Bucket Policy Change API Calls to Log
+S3BUCKET_POLICY_CHANGE_APIS = ["PutBucketAcl","PutBucketPolicy","PutBucketCors",
+                      "PutBucketLifecycle","PutBucketReplication","DeleteBucketPolicy",
+                              "DeleteBucketCors","DeleteBucketLifecycle","DeleteBucketReplication"]
 REQUIRED_PERMISSIONS = [
 {
     "IpProtocol" : "tcp",
@@ -62,27 +78,30 @@ REQUIRED_PERMISSIONS = [
     "Ipv6Ranges": []
 }]
 
-def priority_notification(event, eventName):
+def event_classification(event,eventName):
     remedyDone = False
     if eventName in SECURITY_GROUP_CHANGE_APIS:
         if eventName in SECURITY_GROUP_REMEDIATE_APIS:
             remedyDone=remediate_security_group_change(event)
-        notification="SECURITY_GROUP_CHANGE"
+        classification="SECURITY_GROUP_CHANGE"
     elif eventName in NACL_CHANGE_APIS:
-        notification="NACL_CHANGE"
+        classification="NACL_CHANGE"
     elif eventName in NETWORK_CHANGE_APIS:
-        notification="NETWORK_CHANGE"
+        classification="NETWORK_CHANGE"
     elif eventName in CLOUDTRAIL_CHANGE_APIS:
         if eventName in CLOUDTRAIL_REMEDIATE_APIS:
             remedyDone=remediate_cloudtrail_change(event)
-        notification="CLOUDTRAIL_CHANGE"
+        classification="CLOUDTRAIL_CHANGE"
+    elif eventName in AWS_CONFIG_CHANGE_APIS:
+        classification="AWS_CONFIG_CHANGE"
+    elif eventName in S3BUCKET_POLICY_CHANGE_APIS:
+        classification="S3BUCKET_POLICY_CHANGE_CHANGE"
     else:
-        notification="DEFAULT"
-    return(notification, remedyDone)
+        classification="DEFAULT"
+    return(classification, remedyDone)
 
 
 def remediate_security_group_change(event):
-    
     group_id = event["detail"]["requestParameters"]["groupId"]
     client = boto3.client("ec2");
     
@@ -157,17 +176,6 @@ def verifyLogTable():
             # Wait for table creation
             newtable.meta.client.get_waiter('table_exists').wait(TableName=table)
     return table
-
-def sendAlert(data):
-    """Placeholder for alert functionality.
-       This could be Amazon SNS, SMS, Email or adding to a ticket tracking
-       system like Jira or Remedy.
-    Args:
-        data (dict): All extracted event info.
-    Returns:
-        TYPE: String
-    """
-    return 0
 
 def logEvent(logData, table):
     """Log all information to the provided DynamoDB table.
@@ -250,15 +258,11 @@ def lambda_handler(event, context):
     Returns:
         TYPE: Description
     """
-    
-    
     #Begin evaluating event
     eventName = event['detail']['eventName']
     
-    #Test:
-    
     #priority to check notification type and remediate
-    notification_type, remedyDone = priority_notification(event,eventName)
+    classification, remedyDone = event_classification(event,eventName)
     
     #Extract user info from the event
     try:
@@ -279,10 +283,8 @@ def lambda_handler(event, context):
     logData = {'userName': userName, 'userArn': userArn, 'accessKeyId': accessKeyId, 
                'region': region, 'account': account, 'eventTime': eventTime, 
                'userAgent': userAgent, 'sourceIP': sourceIP, "eventSource":eventSource,
-              'notification':notification_type, 'remedyDone':remedyDone}
-    
-    #Alerting
-    # result = sendAlert(logData)
+              'notification':classification, 'remedyDone':remedyDone,
+              'eventName':eventName}
 
     #TODO:Temporary to send to ElasticSearch, Required Minimal Calls.
     print(json.dumps(logData))
