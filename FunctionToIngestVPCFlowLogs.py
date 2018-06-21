@@ -13,7 +13,6 @@ Citations:
 ''' 
 
 
-
 from __future__ import print_function
 import boto3
 import logging
@@ -23,7 +22,7 @@ from StringIO import StringIO
 from botocore.vendored import requests
 import datetime
 
-# TODO: Logging, Tweaks required
+# Logging, Tweaks required
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
@@ -33,9 +32,12 @@ time_fmt = '%Y-%m-%d %H:%M:%S'
 
 VPC_SUBNET = "10."
 client = boto3.client('ec2')
+#Remedy Status Constants, Fail when Remedy Function fails, Error when encounter an error
+SUCCESS="Success"
+FAIL="Fail"
+ERROR="Error"
 
-
-# TODO: Get from API Call POC, https://docs.cybercure.ai/docs/blocked-ip-api
+# TODO: Get from API Call POC
 THREAT_FEED=["173.255.238.173","186.67.91.98","79.34.201.74","104.200.20.129",
 "180.183.142.77","154.70.135.195","190.214.219.247","152.240.102.192","179.101.41.234",
 "186.101.211.202","156.197.80.109","181.199.16.111","145.131.154.236","185.200.250.155",
@@ -58,10 +60,10 @@ THREAT_FEED=["173.255.238.173","186.67.91.98","79.34.201.74","104.200.20.129",
 "159.89.54.241","69.164.204.42","217.23.9.106","177.163.222.177","186.3.158.252","186.101.139.20"]
 
 
-# TODO: Handle API Calls and Build Cached Solution For Queries, to reduce latency
+# TODO: Handle API Calls and Build Cached Solution For Queries
 ip_lookup = {"city":None,"region":None,"location": None,"country":None,"geoname":None,"inThreatFeed":False}
 
-def get_ip_info(address):
+def getIPInfo(address):
     api = "http://api.ipstack.com/"
     access_key="?access_key=__IPSTACK_KEY__&output=json"
     try:
@@ -80,35 +82,48 @@ def get_ip_info(address):
     return ip_lookup
 
 NACL_ID = 'acl-0551968135f1b8eec'
-MAX_RULE = 100 
+MAX_RULE = 100 #Default Rule, Add Deny Rules with RuleNumber less than this
 
 def addToNACL(address):
     next_rule=100
     nacls = client.describe_network_acls(NetworkAclIds=[NACL_ID])
     if len(nacls['NetworkAcls']) == 0:
                 raise Exception("No NACLs found!")
+    # find next available rule number
+    addressCidr=address + "/32"
+    cidrBlockPresent=False
     
     for entry in nacls['NetworkAcls'][0]['Entries']:
         if entry['Egress'] == False and entry['RuleAction'] == 'deny':
             if entry['RuleNumber'] >= MAX_RULE:
                 continue
-
+            if entry['CidrBlock']==addressCidr:
+                cidrBlockPresent=True
+                break
             if entry['RuleNumber'] < MAX_RULE:
                 next_rule = min(next_rule, entry['RuleNumber'])
 
     next_rule -= 1
-    res = client.create_network_acl_entry(
-        NetworkAclId=NACL_ID,
-        RuleNumber=next_rule,
-        Protocol="-1",
-        RuleAction="deny",
-        Egress=False,
-        CidrBlock=address + "/32"
-    )
-    return True
+    if not cidrBlockPresent:
+        try:
+            addDenyEntryResponse = client.create_network_acl_entry(
+                NetworkAclId=NACL_ID,
+                RuleNumber=next_rule,
+                Protocol="-1",
+                RuleAction="deny",
+                Egress=False,
+                CidrBlock=addressCidr
+            )
+        except:
+            return ERROR
+        # Check Response
+        if (addDenyEntryResponse['ResponseMetadata']['HTTPStatusCode']!=200):
+            return FAIL
+    return SUCCESS
 
 
 def lambda_handler(event, context):
+    logger.info('Event: %s' % json.dumps(event))
     #CloudWatch log data
     outEvent = str(event['awslogs']['data'])
     
@@ -128,21 +143,25 @@ def lambda_handler(event, context):
         client_network_interfaces = client.describe_network_interfaces(NetworkInterfaceIds=[logEvent['extractedFields']["interface_id"]])
         logData['SGID']=client_network_interfaces['NetworkInterfaces'][0]['Groups'][0]['GroupId']
         logData['VPC']=client_network_interfaces['NetworkInterfaces'][0]['VpcId']
-        remedyDone=False
-        # TODO:Placeholder for security object
-        if logData['srcaddr'] in THREAT_FEED:
-            logData["inThreatFeed"]=True
-            remedyDone=addToNACL(address)
-        else:
-            logData["inThreatFeed"]=False
-            
-        logData["remedyDone"]=remedyDone
         
         if VPC_SUBNET in logData['srcaddr']:
+            ipAddressToScan=logData['dstaddr']
             logData['direction']="outbound"
+            logData.update(getIPInfo(ipAddressToScan))
         else:
+            ipAddressToScan=logData['srcaddr']
             logData['direction']="inbound"
-            logData.update(get_ip_info(logData['srcaddr']))
-            
+            logData.update(getIPInfo(ipAddressToScan))
+
+        remedyStatus=False
+        # TODO:Placeholder for security object
+        if logData['action']=="ACCEPT":
+            if ipAddressToScan in THREAT_FEED:
+                logData["inThreatFeed"]=True
+                logData['remedyStatus']=addToNACL(ipAddressToScan)
+            else:
+                logData["inThreatFeed"]=False
+        
+        logData['remedyStatus']=addToNACL("173.255.238.173")
         logData['notification']="VPC_FLOW_LOG"
         print(json.dumps(logData))
