@@ -314,7 +314,7 @@
             "type": "date"
           },
           "IP": {
-            "type": "ip"
+            "type": "text"
           },
           "SudoInfo": {
             "type": "text",
@@ -527,7 +527,7 @@
             }
           },
           "sourceIP": {
-            "type": "ip"
+            "type": "text"
           },
           "userAgent": {
             "type": "text",
