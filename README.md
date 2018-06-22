@@ -19,6 +19,6 @@ Steps for deploying
 
 ## Additional Deployment Notes
 
-## Contrinutors
+## Contributors
 
 ## Acknowledgements
