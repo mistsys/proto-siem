@@ -10,7 +10,6 @@ Citations:
 [3]:
 [4]:
 '''
-
 import logging
 import boto3
 import json
@@ -53,6 +52,8 @@ AWS_CONFIG_CHANGE_APIS = ["PutConfigurationRecorder","StopConfigurationRecorder"
 S3BUCKET_POLICY_CHANGE_APIS = ["PutBucketAcl","PutBucketPolicy","PutBucketCors",
                       "PutBucketLifecycle","PutBucketReplication","DeleteBucketPolicy",
                               "DeleteBucketCors","DeleteBucketLifecycle","DeleteBucketReplication"]
+# Sample Required Permissions
+# TODO: Ingest Permisssions from a template
 REQUIRED_PERMISSIONS = [
 {
     "IpProtocol" : "tcp",
@@ -83,7 +84,14 @@ REQUIRED_PERMISSIONS = [
 }]
 
 def eventClassification(event,eventName):
-    remedyStatus = False
+    """Classifies Event into defined API's and
+    calls remediate functions before returning.
+    Args:
+        event, eventName 
+    Returns:
+        classification, remedyStatus
+    """
+    remedyStatus = FAIL
     if eventName in SECURITY_GROUP_CHANGE_APIS:
         if eventName in SECURITY_GROUP_REMEDIATE_APIS and DOREMEDY:
             remedyStatus=remediateSecurityGroupChange(event)
@@ -106,6 +114,13 @@ def eventClassification(event,eventName):
 
 
 def remediateSecurityGroupChange(event):
+    """Remediates Security Group Change and return remedyStatus
+    Args:
+        event (TYPE): Event from lambda_handler
+    Returns:
+        remedyStatus
+        TYPE: String
+    """
     group_id = event["detail"]["requestParameters"]["groupId"]
     client = boto3.client("ec2");
     
@@ -141,6 +156,13 @@ def remediateSecurityGroupChange(event):
     
     
 def remediateCloudtrailChange(event):
+    """Remediates Cloudtrail Change and return remedyStatus
+    Args:
+        event (TYPE): Event from lambda_handler
+    Returns:
+        remedyStatus
+        TYPE: String
+    """
     trailArn = event['detail']['requestParameters']['name']
     client=boto3.client('cloudtrail')
     response=client.get_trail_status(Name=trailArn)
@@ -197,4 +219,4 @@ def lambda_handler(event, context):
     #TODO:Temporary to send to ElasticSearch, Required Minimal Calls.
     print(json.dumps(logData))
     
-    return True 
+    return True
