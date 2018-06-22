@@ -12,7 +12,6 @@ Citations:
 
 ''' 
 
-
 from __future__ import print_function
 import boto3
 import logging
@@ -21,6 +20,9 @@ import gzip
 from StringIO import StringIO
 from botocore.vendored import requests
 import datetime
+import socket
+
+table = {num:name[8:] for name,num in vars(socket).items() if name.startswith("IPPROTO")}
 
 # Logging, Tweaks required
 logger = logging.getLogger()
@@ -32,6 +34,10 @@ time_fmt = '%Y-%m-%d %H:%M:%S'
 
 VPC_SUBNET = "10."
 client = boto3.client('ec2')
+
+#Remedy Flag
+DOREMEDY=True
+
 #Remedy Status Constants, Fail when Remedy Function fails, Error when encounter an error
 SUCCESS="Success"
 FAIL="Fail"
@@ -61,30 +67,51 @@ THREAT_FEED=["173.255.238.173","186.67.91.98","79.34.201.74","104.200.20.129",
 
 
 # TODO: Handle API Calls and Build Cached Solution For Queries
-ip_lookup = {"city":None,"region":None,"location": None,"country":None,"geoname":None,"inThreatFeed":False}
+geoip  = {"city_name":None,"region_name":None,"location": None,
+          "country_name":None,"latitude":None,"longitude":None}
 
 def getIPInfo(address):
+    """Returns a geoip type object that countains city_name, region_name,
+    location, latutute, longitude, and country_name for a given IP address
+    looked up over 
+    Args:
+        address:IP address
+        TYPE:String
+    Returns:
+        geoip dictionary
+        TYPE: Dictionary
+    """
     api = "http://api.ipstack.com/"
     access_key="?access_key=__IPSTACK_KEY__&output=json"
     try:
         request_string=api+address+access_key
         response = requests.get(api+address+access_key)
     except:
-        return ip_lookup
+        return geoip 
 
     if (response.status_code==200):
         json_response = json.loads(response.text)
-        ip_lookup["city"]=str(json_response["city"])
-        ip_lookup["region"]=str(json_response["region_name"])
-        ip_lookup["location"]={"lat": json_response["latitude"],"lon": json_response["longitude"]}
-        ip_lookup["country"]=str(json_response["country_name"])
-        ip_lookup["geoname"]=str(json_response["location"]["geoname_id"])
-    return ip_lookup
+        geoip ["city_name"]=str(json_response["city"])
+        geoip ["region_name"]=str(json_response["region_name"])
+        geoip ["location"]=[json_response["longitude"],json_response["latitude"]]
+        geoip ["latitude"]=json_response["latitude"]
+        geoip ["longitude"]=json_response["longitude"]
+        geoip ["country_name"]=str(json_response["country_name"])
+    return geoip 
 
 NACL_ID = 'acl-0551968135f1b8eec'
+# TODO: Add support for identifying ACL from event
 MAX_RULE = 100 #Default Rule, Add Deny Rules with RuleNumber less than this
 
 def addToNACL(address):
+    """Adds a given IP address to NACL specified.
+    Args:
+        address:IP address
+        TYPE:String
+    Returns:
+        remedyStatus: status of actions
+        TYPE:String
+    """
     next_rule=100
     nacls = client.describe_network_acls(NetworkAclIds=[NACL_ID])
     if len(nacls['NetworkAcls']) == 0:
@@ -123,6 +150,12 @@ def addToNACL(address):
 
 
 def lambda_handler(event, context):
+     """Summary
+    Processes events subscribed from /var/secure logs from EC2 Instances
+    Args:
+        event (TYPE): Description
+        context (TYPE): Description
+    """
     logger.info('Event: %s' % json.dumps(event))
     #CloudWatch log data
     outEvent = str(event['awslogs']['data'])
@@ -147,21 +180,22 @@ def lambda_handler(event, context):
         if VPC_SUBNET in logData['srcaddr']:
             ipAddressToScan=logData['dstaddr']
             logData['direction']="outbound"
-            logData.update(getIPInfo(ipAddressToScan))
         else:
             ipAddressToScan=logData['srcaddr']
             logData['direction']="inbound"
-            logData.update(getIPInfo(ipAddressToScan))
+        
+        logData['geoip']=getIPInfo(ipAddressToScan)
 
-        remedyStatus=False
+        logData['remedyStatus']=FAIL
         # TODO:Placeholder for security object
         if logData['action']=="ACCEPT":
             if ipAddressToScan in THREAT_FEED:
                 logData["inThreatFeed"]=True
-                logData['remedyStatus']=addToNACL(ipAddressToScan)
+                if DOREMEDY:
+                    logData['remedyStatus']=addToNACL(ipAddressToScan)
             else:
                 logData["inThreatFeed"]=False
-        
-        logData['remedyStatus']=addToNACL("173.255.238.173")
+    
         logData['notification']="VPC_FLOW_LOG"
+        logData['protocol']=table[int(logData['protocol'])]
         print(json.dumps(logData))
