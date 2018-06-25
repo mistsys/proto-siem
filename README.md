@@ -15,10 +15,20 @@ Required Resources
 
 Steps for deploying
 
+###Kibana Template
+  To install the Kibana Index Mapping:
+    1. Use the Development Console in AWS ElasticSearch Kibana Console to access templates
+    2. Run Command GET /_template to retrieve all available templates
+    3. If reindexing is required use the command curl -XDELETE 'http://YOUR_ES_DOMAIN_ENDPOINT/cwl*/' to delete any previous
+       indexes
+    4. Finally, Use PUT _template/template_1 and append the template data from KibanaTemplate.json file
+   Note: This template is required for changing type of certain fields to the desired value which is not captured by
+   ES by default (location type as geo_point and packets type as long)
+
 ## Running Tests
 
 ## Additional Deployment Notes
 
-## Contrinutors
+## Contributors
 
 ## Acknowledgements
