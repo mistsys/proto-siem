@@ -1,0 +1,98 @@
+[
+  {
+    "_id": "SSH_Logs",
+    "_type": "search",
+    "_source": {
+      "title": "SSH_Logs",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "source",
+        "logType",
+        "isSSHLog",
+        "geoip.country_name",
+        "geoip.location",
+        "geoip.region_name",
+        "user"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"cwl-*\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[{\"meta\":{\"negate\":false,\"index\":\"cwl-*\",\"key\":\"notification\",\"value\":\"EC2_AUTH_LOGS\",\"disabled\":false,\"alias\":null},\"query\":{\"match\":{\"notification\":{\"query\":\"EC2_AUTH_LOGS\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}},{\"meta\":{\"negate\":false,\"index\":\"cwl-*\",\"key\":\"isSSHLog\",\"value\":\"true\",\"disabled\":false,\"alias\":null},\"query\":{\"match\":{\"isSSHLog\":{\"query\":true,\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "EC2-AUTH-LOGS-FailedLogins",
+    "_type": "search",
+    "_source": {
+      "title": "EC2 AUTH LOGS FailedLogins",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "isSSHLog",
+        "logType",
+        "source",
+        "user"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"cwl-*\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[{\"meta\":{\"negate\":false,\"index\":\"cwl-*\",\"key\":\"notification\",\"value\":\"EC2_AUTH_LOGS\",\"disabled\":false,\"alias\":null},\"query\":{\"match\":{\"notification\":{\"query\":\"EC2_AUTH_LOGS\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}},{\"meta\":{\"negate\":false,\"index\":\"cwl-*\",\"key\":\"logType\",\"value\":\"FailedLogin\",\"disabled\":false,\"alias\":null},\"query\":{\"match\":{\"logType\":{\"query\":\"FailedLogin\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "EC2-AUTH-LOGS",
+    "_type": "search",
+    "_source": {
+      "title": "EC2 AUTH LOGS",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "source",
+        "isSSHLog",
+        "logType",
+        "eventTimestamp",
+        "message"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"cwl-*\",\"query\":{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"*\"}},\"filter\":[{\"$state\":{\"store\":\"appState\"},\"meta\":{\"alias\":null,\"disabled\":false,\"index\":\"cwl-*\",\"key\":\"notification\",\"negate\":false,\"value\":\"EC2_AUTH_LOGS\"},\"query\":{\"match\":{\"notification\":{\"query\":\"EC2_AUTH_LOGS\",\"type\":\"phrase\"}}}}],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "SSH-Sudo-Attempts",
+    "_type": "search",
+    "_source": {
+      "title": "SSH Sudo Attempts",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "_source"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"cwl-*\",\"query\":{\"query_string\":{\"query\":\"notification:ec2* && logType:sudo\",\"analyze_wildcard\":true}},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  }
+]
