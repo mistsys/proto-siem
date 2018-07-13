@@ -10,8 +10,7 @@ Citations:
 [3]:https://aws.amazon.com/blogs/security/how-to-facilitate-data-analysis-and-fulfill-security-requirements-by-using-centralized-flow-log-data/
 [4]:https://aws.amazon.com/blogs/security/how-to-visualize-and-refine-your-networks-security-by-adding-security-group-ids-to-your-vpc-flow-logs/
 
-''' 
-
+'''
 from __future__ import print_function
 import boto3
 import logging
@@ -21,8 +20,12 @@ from StringIO import StringIO
 from botocore.vendored import requests
 import datetime
 import socket
+import re
+import os
 
 table = {num:name[8:] for name,num in vars(socket).items() if name.startswith("IPPROTO")}
+rfc1918 = re.compile('^(10(\.(25[0-5]|2[0-4][0-9]|1[0-9]{1,2}|[0-9]{1,2})){3}|((172\.(1[6-9]|2[0-9]|3[01]))|192\.168)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{1,2}|[0-9]{1,2})){2})$')
+IP_Cache = {}
 
 # Logging, Tweaks required
 logger = logging.getLogger()
@@ -32,11 +35,11 @@ if logger.handlers:
 logging.basicConfig(level=logging.INFO)
 time_fmt = '%Y-%m-%d %H:%M:%S'
 
-VPC_SUBNET = "10."
+
 client = boto3.client('ec2')
 
 #Remedy Flag
-DOREMEDY=True
+DOREMEDY=False
 
 #Remedy Status Constants, Fail when Remedy Function fails, Error when encounter an error
 SUCCESS="Success"
@@ -67,51 +70,46 @@ THREAT_FEED=["173.255.238.173","186.67.91.98","79.34.201.74","104.200.20.129",
 
 
 # TODO: Handle API Calls and Build Cached Solution For Queries
-geoip  = {"city_name":None,"region_name":None,"location": None,
+
+def getIPInfo(address, access_key):
+    geoip  = {"city_name":None,"region_name":None,"location": None,
           "country_name":None,"latitude":None,"longitude":None}
-
-def getIPInfo(address):
-    """Returns a geoip type object that countains city_name, region_name,
-    location, latutute, longitude, and country_name for a given IP address
-    looked up over 
-    Args:
-        address:IP address
-        TYPE:String
-    Returns:
-        geoip dictionary
-        TYPE: Dictionary
-    """
+          
     api = "http://api.ipstack.com/"
-    access_key="?access_key=__IPSTACK_KEY__&output=json"
+    request_string=api+address+"?access_key="+access_key
+    
+    
     try:
-        request_string=api+address+access_key
-        response = requests.get(api+address+access_key)
+        cached_geoip = IP_Cache[address]
+        return  cached_geoip
     except:
-        return geoip 
+        pass
+        
+    try:
+        response = requests.get(request_string)
+    except:
+        return geoip
+    
+    json_response = json.loads(response.text)
+    geoip ["city_name"]=str(json_response["city"])
+    geoip ["region_name"]=str(json_response["region_name"])
+    geoip ["location"]=[json_response["longitude"],json_response["latitude"]]
+    geoip ["latitude"]=json_response["latitude"]
+    geoip ["longitude"]=json_response["longitude"]
+    geoip ["country_name"]=str(json_response["country_name"])
+    IP_Cache[address]=geoip
+    
+    return geoip
 
-    if (response.status_code==200):
-        json_response = json.loads(response.text)
-        geoip ["city_name"]=str(json_response["city"])
-        geoip ["region_name"]=str(json_response["region_name"])
-        geoip ["location"]=[json_response["longitude"],json_response["latitude"]]
-        geoip ["latitude"]=json_response["latitude"]
-        geoip ["longitude"]=json_response["longitude"]
-        geoip ["country_name"]=str(json_response["country_name"])
-    return geoip 
-
-NACL_ID = 'acl-0551968135f1b8eec'
-# TODO: Add support for identifying ACL from event
+def isPrivate(ipAddress):
+    if rfc1918.match(ipAddress):
+        return True
+    return False
+    
+NACL_ID = ''
 MAX_RULE = 100 #Default Rule, Add Deny Rules with RuleNumber less than this
 
 def addToNACL(address):
-    """Adds a given IP address to NACL specified.
-    Args:
-        address:IP address
-        TYPE:String
-    Returns:
-        remedyStatus: status of actions
-        TYPE:String
-    """
     next_rule=100
     nacls = client.describe_network_acls(NetworkAclIds=[NACL_ID])
     if len(nacls['NetworkAcls']) == 0:
@@ -148,15 +146,7 @@ def addToNACL(address):
             return FAIL
     return SUCCESS
 
-
 def lambda_handler(event, context):
-     """Summary
-    Processes events subscribed from /var/secure logs from EC2 Instances
-    Args:
-        event (TYPE): Description
-        context (TYPE): Description
-    """
-    logger.info('Event: %s' % json.dumps(event))
     #CloudWatch log data
     outEvent = str(event['awslogs']['data'])
     
@@ -165,37 +155,46 @@ def lambda_handler(event, context):
 
     #JSON to dictionary log_data
     cleanEvent = json.loads(outEvent)
+    
     for logEvent in cleanEvent['logEvents']:
         logData={}
         logData=logEvent['extractedFields']
-        time_start=datetime.datetime.utcfromtimestamp(float(logData['start']))
-        time_end=datetime.datetime.utcfromtimestamp(float(logData['end']))
-        logData['start']=time_start.strftime(time_fmt)
-        logData['end']=time_end.strftime(time_fmt)
-        logData['duration']=(time_end-time_start).total_seconds() / 60
-        client_network_interfaces = client.describe_network_interfaces(NetworkInterfaceIds=[logEvent['extractedFields']["interface_id"]])
-        logData['SGID']=client_network_interfaces['NetworkInterfaces'][0]['Groups'][0]['GroupId']
-        logData['VPC']=client_network_interfaces['NetworkInterfaces'][0]['VpcId']
         
-        if VPC_SUBNET in logData['srcaddr']:
-            ipAddressToScan=logData['dstaddr']
-            logData['direction']="outbound"
+        try:
+            client_network_interfaces = client.describe_network_interfaces(NetworkInterfaceIds=[logEvent['extractedFields']["interface_id"]])
+            logData['SGID']=client_network_interfaces['NetworkInterfaces'][0]['Groups'][0]['GroupId']
+            logData['VPC']=client_network_interfaces['NetworkInterfaces'][0]['VpcId']
+        except:
+            logData['SGID']=''
+            logData['VPC']=''
+        
+        srcaddr=logData['srcaddr']
+        dstaddr=logData['dstaddr']
+        
+        
+        
+        if isPrivate(srcaddr) and isPrivate(dstaddr):
+            logData['direction']="private-internal"
         else:
-            ipAddressToScan=logData['srcaddr']
-            logData['direction']="inbound"
-        
-        logData['geoip']=getIPInfo(ipAddressToScan)
-
-        logData['remedyStatus']=FAIL
-        # TODO:Placeholder for security object
-        if logData['action']=="ACCEPT":
-            if ipAddressToScan in THREAT_FEED:
-                logData["inThreatFeed"]=True
-                if DOREMEDY:
-                    logData['remedyStatus']=addToNACL(ipAddressToScan)
+            if isPrivate(srcaddr):
+                ipAddressToScan=dstaddr
+                logData['direction']="public-outbound"
             else:
-                logData["inThreatFeed"]=False
+                ipAddressToScan=srcaddr
+                logData['direction']="public-inbound"
+                
+            logData['remedyStatus']=None
+            # TODO:Placeholder for security object
+            if logData['action']=="ACCEPT":
+                logData['geoip']=getIPInfo(ipAddressToScan,os.environ['GEOIP_KEY'])
+                if ipAddressToScan in THREAT_FEED:
+                    logData["inThreatFeed"]=True
+                    if DOREMEDY:
+                        logData['remedyStatus']=addToNACL(ipAddressToScan)
+                else:
+                    logData["inThreatFeed"]=False
     
         logData['notification']="VPC_FLOW_LOG"
         logData['protocol']=table[int(logData['protocol'])]
         print(json.dumps(logData))
+        return True 
