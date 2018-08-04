@@ -9,6 +9,8 @@ from StringIO import StringIO
 from botocore.vendored import requests
 import datetime
 import os
+from boto3 import client as boto3_client
+import socket,struct
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
@@ -22,31 +24,49 @@ ignore_list = ["cron","input_userauth_request","reverse mapping checking getaddr
 
 # TODO: Handle API Calls and Build Cached Solution For Queries
 
-def getIPInfo(address, access_key):
-    geoip  = {"city_name":None,"region_name":None,"location": None,
-          "country_name":None,"latitude":None,"longitude":None}
-          
-    api = "http://api.ipstack.com/"
-    request_string=api+address+"?access_key="+access_key
-    try:
-        response = requests.get(request_string)
-    except:
-        return geoip
+def fetchGeoIPData(address):
+    '''
+    Function to Fetch GeoIP data for an IP address
+    Args:
+        address(string): IP address to be looked up in the database 
+    Returns:
+        geoip response from Lambda Function
+    '''
+    lambda_client = boto3_client('lambda')
+    response = lambda_client.invoke(
+            FunctionName="FunctionToFetchGeoIPData",
+            InvocationType='RequestResponse',
+            Payload=json.dumps(address)
+        )
     
-    json_response = json.loads(response.text)
-    geoip ["city_name"]=str(json_response["city"])
-    geoip ["region_name"]=str(json_response["region_name"])
-    geoip ["location"]=[json_response["longitude"],json_response["latitude"]]
-    geoip ["latitude"]=json_response["latitude"]
-    geoip ["longitude"]=json_response["longitude"]
-    geoip ["country_name"]=str(json_response["country_name"])
-    return geoip
+    string_response = response["Payload"].read().decode('utf-8')
+    
+    parsed_response = json.loads(string_response)
+
+    try:
+        if (parsed_response['statusCode']==200):
+            geoipresponse = {}
+            geoipresponse = json.loads(parsed_response["body"])
+            return geoipresponse
+    except:
+        pass
+    
+    return None
 
 def parseSSHLog(message):
+    '''
+    Function to parse and classify SSH message
+    Args:
+        message(string): message to be parsed
+    Returns:
+        normalized message as logData
+    '''
     logData = {}
     if "Accepted publickey" in message:
         logData['logType']="SuccessfulLoginKey"
         logData['IP']=re.findall(ip_regex,message)[0]
+        # logData['geoip']=getIPInfo(logData['IP'], os.environ['GEOIP_KEY'])
+        logData['geoip']=fetchGeoIPData(logData['IP'])
         logData['user']=re.findall(r"for(.*?)from",message)[0].strip()
     elif "Accepted password" in message:
         logData['logType']="SuccessfulLoginPassword"
@@ -59,7 +79,7 @@ def parseSSHLog(message):
         logData['logType']="FailedLogin"
         logData['user']=re.findall(r"user(.*?)from",message)[0].strip()
         logData['IP']=re.findall(ip_regex,message)[0]
-        logData['geoip']=getIPInfo(logData['IP'], os.environ['GEOIP_KEY'])
+        logData['geoip']=fetchGeoIPData(logData['IP'])
     elif "maximum authentication attempts" in message:
         logData['logType']="MaxAuthTries"
         logData['user']=re.findall(r"user(.*?)from",message)[0].strip()
@@ -98,9 +118,9 @@ def lambda_handler(event, context):
     cleanEvent = json.loads(outEvent)
     
     
-    
+    sendLogs = {}
     for logEvent in cleanEvent['logEvents']:
-        logData = {"notification":"EC2_AUTH_LOGS","isSSHLog":False}
+        logData = {"notification":"authlog-","isSSHLog":False}
         logData['source']=logEvent['extractedFields']['source']
         message=logEvent['extractedFields']['eventdata']
         logData['eventTimestamp']=logEvent['extractedFields']['month']+" "+logEvent['extractedFields']['date']+" "+logEvent['extractedFields']['time']
@@ -124,5 +144,3 @@ def lambda_handler(event, context):
         logData['message']=message
         
         print(json.dumps(logData))
-
-
