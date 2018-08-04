@@ -19,22 +19,19 @@ import gzip
 from StringIO import StringIO
 from botocore.vendored import requests
 import datetime
-import socket
 import re
 import os
+from boto3 import client as boto3_client
 
-table = {num:name[8:] for name,num in vars(socket).items() if name.startswith("IPPROTO")}
+logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.INFO)
+
+protocoltable = {256: 'MAX', 0: 'HOPOPTS', 2: 'IGMP', 3: 'GGP', 4: 'IPV4', 6: 'TCP', 1: 'ICMP', 8: 'EGP', 12: 'PUP', 17: 'UDP', 22: 'IDP', 29: 'TP', 36: 'XTP', 
+         41: 'IPV6', 43: 'ROUTING', 44: 'FRAGMENT', 46: 'RSVP', 47: 'GRE', 50: 'ESP', 51: 'AH', 58: 'ICMPV6', 59: 'NONE', 60: 'DSTOPTS', 63: 'HELLO', 
+         77: 'ND', 80: 'EON', 103: 'PIM', 108: 'IPCOMP', 255: 'RAW'}
 rfc1918 = re.compile('^(10(\.(25[0-5]|2[0-4][0-9]|1[0-9]{1,2}|[0-9]{1,2})){3}|((172\.(1[6-9]|2[0-9]|3[01]))|192\.168)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{1,2}|[0-9]{1,2})){2})$')
-IP_Cache = {}
 
-# Logging, Tweaks required
-logger = logging.getLogger()
-if logger.handlers:
-    for handler in logger.handlers:
-        logger.removeHandler(handler)
-logging.basicConfig(level=logging.INFO)
 time_fmt = '%Y-%m-%d %H:%M:%S'
-
 
 client = boto3.client('ec2')
 
@@ -46,104 +43,117 @@ SUCCESS="Success"
 FAIL="Fail"
 ERROR="Error"
 
-# TODO: Get from API Call POC
-THREAT_FEED=["173.255.238.173","186.67.91.98","79.34.201.74","104.200.20.129",
-"180.183.142.77","154.70.135.195","190.214.219.247","152.240.102.192","179.101.41.234",
-"186.101.211.202","156.197.80.109","181.199.16.111","145.131.154.236","185.200.250.155",
-"109.226.213.241","51.254.188.36","41.46.168.26","197.51.198.220","179.90.186.142",
-"52.53.210.208","171.242.126.133","188.118.181.192","190.214.220.167","211.151.26.4",
-"222.240.241.29","186.101.187.162","202.131.228.123","191.14.185.50","159.192.232.11",
-"181.198.230.215","1.54.47.244","179.119.172.239","181.198.254.246","14.161.163.119",
-"178.47.183.230","212.237.45.26","186.3.228.113","41.42.184.167","123.27.22.100",
-"5.62.41.26","145.239.197.98","66.85.152.32","181.112.110.29","123.59.45.153",
-"136.144.129.3","217.23.2.182","189.172.15.196","181.199.110.67","14.162.245.251",
-"54.38.184.9","186.4.244.47","41.252.228.21","118.71.122.64","171.241.199.36",
-"208.117.45.190","158.177.139.228","193.70.49.198","107.170.226.214","58.152.87.91",
-"50.116.27.38","159.89.165.109","61.182.27.121","185.220.101.8","186.101.246.194",
-"186.4.146.73","37.26.136.249","217.23.2.183","41.238.98.44","123.21.203.247",
-"113.170.122.19","89.184.77.171","172.104.246.157","18.218.252.138","113.172.114.38",
-"63.140.28.206","95.108.0.171","186.4.146.60","85.250.57.222","186.4.154.224",
-"186.47.170.138","139.162.254.21","181.198.203.113","177.184.93.241","188.166.1.95",
-"186.47.170.129","181.199.90.143","139.162.147.159","186.3.186.134","109.74.206.244",
-"171.242.222.164","186.33.143.237","171.7.171.64","119.29.54.203","118.68.61.64",
-"159.89.54.241","69.164.204.42","217.23.9.106","177.163.222.177","186.3.158.252","186.101.139.20"]
+#Functionality for THREAT_FEED
+THREAT_FEED=[]
+
+def fetchProtocolService(protocol_name, port_no):
+    '''
+    Function to fetch service name from protocol and port combination
+    Args:
+        protocol_name(string): protocol 
+        port_no(string): port 
+    Returns:
+        service name if relevant else None
+    '''
+    try:
+        service = socket.getservbyport(int(port_no), protocol_name)
+    except:
+        try:
+            service = socket.getservbyport(int(port_no))
+        except:
+            service = None
+    return(service)
 
 
-# TODO: Handle API Calls and Build Cached Solution For Queries
-
-def getIPInfo(address, access_key):
-    geoip  = {"city_name":None,"region_name":None,"location": None,
-          "country_name":None,"latitude":None,"longitude":None}
-          
-    api = "http://api.ipstack.com/"
-    request_string=api+address+"?access_key="+access_key
+def fetchGeoIPData(address):
+    '''
+    Function to Fetch GeoIP data for an IP address
+    Args:
+        address(string): IP address to be looked up in the database 
+    Returns:
+        geoip response from Lambda Function
+    '''
+    lambda_client = boto3_client('lambda')
+    response = lambda_client.invoke(
+            FunctionName="CentralizedLogging_FunctionToFetchGeoIPData",
+            InvocationType='RequestResponse',
+            Payload=json.dumps(address)
+        )
     
+    string_response = response["Payload"].read().decode('utf-8')
+    
+    parsed_response = json.loads(string_response)
     
     try:
-        cached_geoip = IP_Cache[address]
-        return  cached_geoip
+        if (parsed_response['statusCode']==200):
+            geoipresponse = {}
+            geoipresponse = json.loads(parsed_response["body"])
+            return geoipresponse
     except:
         pass
-        
-    try:
-        response = requests.get(request_string)
-    except:
-        return geoip
     
-    json_response = json.loads(response.text)
-    geoip ["city_name"]=str(json_response["city"])
-    geoip ["region_name"]=str(json_response["region_name"])
-    geoip ["location"]=[json_response["longitude"],json_response["latitude"]]
-    geoip ["latitude"]=json_response["latitude"]
-    geoip ["longitude"]=json_response["longitude"]
-    geoip ["country_name"]=str(json_response["country_name"])
-    IP_Cache[address]=geoip
-    
-    return geoip
+    return None
 
 def isPrivate(ipAddress):
+    '''
+    Function to Check if ipAddress is private or public
+    '''
     if rfc1918.match(ipAddress):
         return True
     return False
-    
-NACL_ID = ''
+
+
 MAX_RULE = 100 #Default Rule, Add Deny Rules with RuleNumber less than this
 
-def addToNACL(address):
+def addToNACL(address, vpcId):
+    '''
+    Function to add Deny Rule to Network ACL
+    Args:
+        address(string): IP address to be looked up in the database 
+        vpcId(string): vpcId as identifier
+    Returns:
+        status(string): SUCCESS, FAIL or ERROR
+    '''
     next_rule=100
-    nacls = client.describe_network_acls(NetworkAclIds=[NACL_ID])
-    if len(nacls['NetworkAcls']) == 0:
-                raise Exception("No NACLs found!")
-    # find next available rule number
-    addressCidr=address + "/32"
-    cidrBlockPresent=False
+    ec2 = boto3.resource('ec2')
+    vpc = ec2.Vpc(vpcId)
+    network_acl_iterator = vpc.network_acls.all()
+    for acl in network_acl_iterator:
+        nacls = client.describe_network_acls(NetworkAclIds=[acl.id])
+        if len(nacls['NetworkAcls']) == 0:
+            raise Exception("No NACLs found!")
+        # find next available rule number
+        addressCidr=address + "/32"
+        cidrBlockPresent=False
     
-    for entry in nacls['NetworkAcls'][0]['Entries']:
-        if entry['Egress'] == False and entry['RuleAction'] == 'deny':
-            if entry['RuleNumber'] >= MAX_RULE:
-                continue
-            if entry['CidrBlock']==addressCidr:
-                cidrBlockPresent=True
-                break
-            if entry['RuleNumber'] < MAX_RULE:
-                next_rule = min(next_rule, entry['RuleNumber'])
+        for entry in nacls['NetworkAcls'][0]['Entries']:
+            if entry['Egress'] == False and entry['RuleAction'] == 'deny':
+                if entry['RuleNumber'] >= MAX_RULE:
+                    continue
+                if entry['CidrBlock']==addressCidr:
+                    cidrBlockPresent=True
+                    break
+                if entry['RuleNumber'] < MAX_RULE:
+                    next_rule = min(next_rule, entry['RuleNumber'])
 
-    next_rule -= 1
-    if not cidrBlockPresent:
-        try:
-            addDenyEntryResponse = client.create_network_acl_entry(
-                NetworkAclId=NACL_ID,
-                RuleNumber=next_rule,
-                Protocol="-1",
-                RuleAction="deny",
-                Egress=False,
-                CidrBlock=addressCidr
-            )
-        except:
-            return ERROR
+        next_rule -= 1
+        if not cidrBlockPresent:
+            try:
+                addDenyEntryResponse = client.create_network_acl_entry(
+                    NetworkAclId=acl.id,
+                    RuleNumber=next_rule,
+                    Protocol="-1",
+                    RuleAction="deny",
+                    Egress=False,
+                    CidrBlock=addressCidr
+                )
+            except:
+                print("Caught Error while adding NACL")
+                return ERROR
         # Check Response
-        if (addDenyEntryResponse['ResponseMetadata']['HTTPStatusCode']!=200):
-            return FAIL
+            
+            if (addDenyEntryResponse['ResponseMetadata']['HTTPStatusCode']!=200):
+                return FAIL
     return SUCCESS
 
 def lambda_handler(event, context):
@@ -159,42 +169,50 @@ def lambda_handler(event, context):
     for logEvent in cleanEvent['logEvents']:
         logData={}
         logData=logEvent['extractedFields']
+        client_network_interfaces = client.describe_network_interfaces(NetworkInterfaceIds=[logEvent['extractedFields']["interface_id"]])
         
         try:
-            client_network_interfaces = client.describe_network_interfaces(NetworkInterfaceIds=[logEvent['extractedFields']["interface_id"]])
             logData['SGID']=client_network_interfaces['NetworkInterfaces'][0]['Groups'][0]['GroupId']
+        except:
+            logData['SGID']='N/A'
+            
+        try:
             logData['VPC']=client_network_interfaces['NetworkInterfaces'][0]['VpcId']
         except:
-            logData['SGID']=''
-            logData['VPC']=''
+            logData['VPC']='N/A'
         
         srcaddr=logData['srcaddr']
         dstaddr=logData['dstaddr']
         
-        
+        logData['notification']="vpcflowlog-"
+        logData['protocol']=protocoltable[int(logData['protocol'])]
         
         if isPrivate(srcaddr) and isPrivate(dstaddr):
             logData['direction']="private-internal"
         else:
+            
             if isPrivate(srcaddr):
                 ipAddressToScan=dstaddr
                 logData['direction']="public-outbound"
             else:
                 ipAddressToScan=srcaddr
                 logData['direction']="public-inbound"
-                
+            
+            
+            logData['geoip']=fetchGeoIPData(ipAddressToScan)    
             logData['remedyStatus']=None
-            # TODO:Placeholder for security object
             if logData['action']=="ACCEPT":
-                logData['geoip']=getIPInfo(ipAddressToScan,os.environ['GEOIP_KEY'])
-                if ipAddressToScan in THREAT_FEED:
-                    logData["inThreatFeed"]=True
-                    if DOREMEDY:
-                        logData['remedyStatus']=addToNACL(ipAddressToScan)
-                else:
-                    logData["inThreatFeed"]=False
-    
-        logData['notification']="VPC_FLOW_LOG"
-        logData['protocol']=table[int(logData['protocol'])]
+                logData['srcportinfo']=fetchProtocolService(logData['protocol'], logData['srcport'])
+                logData['dstportinfo']=fetchProtocolService(logData['protocol'], logData['dstport'])
+                
+                try:
+                    logData['inThreatFeed']=logData['geoip']['inThreatFeed']
+                except:
+                    logData['inThreatFeed']=False
+                    
+                if DOREMEDY and logData['inThreatFeed']:
+                    logData['remedyStatus']=addToNACL(ipAddressToScan)
+            
+        
         print(json.dumps(logData))
-        return True 
+        return True
