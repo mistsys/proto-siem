@@ -47,7 +47,6 @@ The solution requires logs from all sources to be published to CloudWatch log gr
 | FunctionToFetchGeoIPData.py | None, Function called by other Lambda | 10 sec | 128 MB |
 | FunctionToUpdateThreatFeed.py | Scheduled CloudWatch Rule Trigger | 10 sec | 128 MB |
 | FunctionForESDataRetention.py | Scheduled CloudWatch Rule Trigger | 10 sec | 128 MB |
-| Google Analytics | [plugins/googleanalytics/README.md][PlGa] |
 
 ### Setting Up Kibana
 
