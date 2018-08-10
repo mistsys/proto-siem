@@ -1,15 +1,14 @@
 # Centralized Security Logging SIEM
 
-A comprehensive log management and analysis solution that can be used to analyze events
-that could affect the security of the infrastructure and take actions. With multiple account and services provisioned, the amount and variety of logs can include service-specific metrics and log files, additional data, such as API calls, configuration changes etc.. Log files from web servers, applications, and operating systems also provide valuable data, though in different formats, and in a random and distributed fashion. The aim is to effectively consolidate, manage, and analyze these different logs 
+A comprehensive log management and event analysis SIEM solution that provides an insight into your AWS infrastructure using the ELK stack. With multiple account and services provisioned, the amount and variety of logs can include service-specific metrics and log files, additional data, such as API calls, configuration changes etc.. Log files from web servers, applications, and operating systems also provide valuable data, though in different formats, and in a random and distributed fashion. The aim is to effectively consolidate, manage, and analyze critical logs. 
 
 ## Getting Started
 
-Requirement for getting started with deploying the solution.
+The solution requires an AWS account with Admin User access.
 
 ## Prerequisites
 
-Required Resources
+Knowledge about deploying the Lambda Functions and configuring AWS managed ElasticSearch.
 
 ## Installing
 
@@ -38,7 +37,31 @@ The solution requires logs from all sources to be published to CloudWatch log gr
 
 4. [FunctionForESDataRetention.py](https://github.com/mistsys/mist-centralized-logging/blob/master/FunctionForESDataRetention.py) Although there have been many approaches that are suggested for LogData retention, this solution explicitly makes use of a scheduled lambda function that looks for indexes on the ELK stack older than a predefined policy and deletes them. A better approach would be to ship old logs to an S3 bucket or AWS glacier.
 
-5. Since we are working with three variety of log types, the design requires different Elastic Search indexes to be maintained for these types. Having different indexes helps with searching, query and maintaining logs as required by custom policies. The function autocreated when shipping logs to ElasticSearch requires an update to process logs and is provided.
+5. Since we are working with three variety of log types, the design requires different Elastic Search indexes to be maintained for these types. Having different indexes helps with searching, query and maintaining logs as required by custom policies. The function autocreated when shipping logs to ElasticSearch requires a minor update to process logs and is provided. This function looks for a "notification" keyword in the logs and modifies the index of the document that is send to ElasticSearch.
+
+```
+    function fetchType(message) {
+    var log_type;
+    var jsonSubString;
+    var JSONMessage;
+    jsonSubString = extractJson(message);
+    if (jsonSubString !== null) { 
+        JSONMessage=JSON.parse(jsonSubString);
+        try {
+            log_type = JSONMessage['notification'];
+        } catch(err) {
+            log_type = "undefined-"
+        } 
+        
+        if (log_type==undefined) {
+            log_type = "cloudtrail-"
+        }
+        
+    }
+    console.log("Type:"+log_type);
+    return log_type;
+    }
+```
 
 | Function Name | Source/Trigger | timeout | memory-size |
 | ------ | ------ | ------ | ------ |
