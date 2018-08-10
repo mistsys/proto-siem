@@ -4,9 +4,9 @@
         "number_of_shards": "5",
         "number_of_replicas": "1"
   },
-  "index_patterns": ["cwl*"],
-  "mappings": {
-      "/aws/lambda/CentralizedLogging_FunctionToIngestSSHLogs": {
+  "index_patterns": ["authlog*"],
+"mappings": {
+      "/aws/lambda/SIEMFunctionToIngestSSHLogs": {
         "properties": {
           "@id": {
             "type": "text",
@@ -165,4 +165,4 @@
         }
       }
     }
-}
+}  
