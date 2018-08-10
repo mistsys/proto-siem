@@ -13,12 +13,26 @@ from boto3 import client as boto3_client
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
 
-LOGTABLE = "GeoIPData"
+LOGTABLE = "centralized-logging-table"
+
+# Logic for AWS IP Check
+# Code to Check for IP on AWS Feed
+ip_ranges = requests.get('https://ip-ranges.amazonaws.com/ip-ranges.json').json()['prefixes']
+
+prefixinfo={}
+toupdateprefixeinfo={}
+
+for item in ip_ranges:
+    prefixinfo[item['ip_prefix']]={'region':item['region'],'service':item['service']}
+    
+netlist = [item['ip_prefix'] for item in ip_ranges]
+
+# geoip placeholder
 
 geoip  = {"city_name":None,"region_name":None,"location": None, "country_name":None,"latitude":None,"longitude":None}
 
 def getIPInfo(address, access_key):
-    
+    '''To fetch IP Info from API, provide GEOIP Key in Environment Variables'''
     api = "http://api.ipstack.com/"
     request_string=api+address+"?access_key="+access_key
     
@@ -70,7 +84,10 @@ def putgeoIPData(address, geoIPData, table):
             'region_name': {'S': geoIPData['region_name']},
             'latitude': {'S': str(geoIPData['latitude'])},
             'longitude': {'S': str(geoIPData['longitude'])},
-            'country_name': {'S': geoIPData['country_name']}
+            'country_name': {'S': geoIPData['country_name']},
+            'isOnAWS': {'BOOL': addressInAWSNetwork(address, netlist)},
+            'service': {'S': str(toupdateprefixeinfo[address]['service'])},
+            'awsregion': {'S': str(toupdateprefixeinfo[address]['region'])}
         }
     )
     return 0
@@ -103,22 +120,46 @@ def getgeoIPData(address, table):
     geoip = {}
     
     if item is not None:
+        #print("Item",item)
         geoip ["city_name"]=str(item["city_name"]['S'])
         geoip ["region_name"]=str(item["region_name"]['S'])
         geoip ["location"]=[float(item["longitude"]['S']),float(item["latitude"]['S'])]
         geoip ["latitude"]=float(item["latitude"]['S'])
         geoip ["longitude"]=float(item["longitude"]['S'])
         geoip ["country_name"]=str(item["country_name"]['S'])
+        try:
+            geoip ["isOnAWS"]=item["isOnAWS"]
+            geoip ["service"]=str(item["service"]['S'])
+            geoip ["awsregion"]=str(item["awsregion"]['S'])
+        except:
+            pass
     else:
         geoip = None
     
     return geoip
 
 
+
+#https://stackoverflow.com/questions/819355/how-can-i-check-if-an-ip-is-in-a-network-in-python-2-x
+def addressInAWSNetwork(ip, netlist):
+    ipaddr = int(''.join([ '%02x' % int(x) for x in ip.split('.') ]), 16)
+    isOnAWS=False
+    for net in netlist: 
+        netstr, bits = net.split('/')
+        netaddr = int(''.join([ '%02x' % int(x) for x in netstr.split('.') ]), 16)
+        mask = (0xffffffff << (32 - int(bits))) & 0xffffffff
+        if (ipaddr & mask) == (netaddr & mask):
+            isOnAWS=True
+            #print("IP on AWS Network",ip)
+            toupdateprefixeinfo[ip] = prefixinfo[net]
+            #print("toupdateprefixeinfo",toupdateprefixeinfo)
+            break
+        else:
+            toupdateprefixeinfo[ip] = {'service':"N/A",'region':"N/A"}
+    return isOnAWS
+
 def lambda_handler(event, context):
-    
-    
-    
+    #print("Event",json.dumps(event))
     geoip = getIPInfo(event, os.environ['GEOIP_KEY'])
     
     response_failure = {
@@ -136,4 +177,7 @@ def lambda_handler(event, context):
         return response_failure
 
     return response_sucess
+
+
+
 
