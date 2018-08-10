@@ -1,0 +1,86 @@
+[
+  {
+    "_id": "5bbe8c00-8c65-11e8-99b4-556c4ec6d470",
+    "_type": "visualization",
+    "_source": {
+      "title": "Anomaly",
+      "visState": "{\"title\":\"Anomaly\",\"type\":\"timelion\",\"params\":{\"expression\":\"$thres=0.02, .es(index='cwl-cloudtrail*',metric='max:system.cpu.user.pct').lines(1).if(eq, 0, null).holt(0.9, 0.1, 0.9, 0.5h).color(#eee).lines(10).label('Prediction'), .es(index='cwl-cloudtrail*',metric='max:system.cpu.user.pct').color(#666).lines(1).label(Actual), .es(index='cwl-cloudtrail*',metric='cardinality:eventName.keyword').lines(1).if(eq, 0, null).holt(0.9, 0.1, 0.9, 0.5h).subtract(.es(index='cwl-cloudtrail*',metric='cardinality:eventName.keyword')).abs().if(lt, $thres, null, .es(index='cwl-cloudtrail*',metric='cardinality:eventName.keyword')).points(10,3,0).color(#c66).label('Anomaly')\",\"interval\":\"auto\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    }
+  },
+  {
+    "_id": "52d5fee0-95dc-11e8-99b4-556c4ec6d470",
+    "_type": "visualization",
+    "_source": {
+      "title": "Anomaly eventSource:ec2",
+      "visState": "{\"title\":\"Anomaly eventSource:ec2\",\"type\":\"timelion\",\"params\":{\"expression\":\"$thres=300,$actual=.es(index='cwl-cloudtrail*',q='eventSource:ec2*').lines(1).label(Actual),$prediction=.es(index='cwl-cloudtrail*',q='eventSource:ec2*').holt(0.5, 0.1, 0.1, 1h).lines(1).label(Prediction),.es(index='cwl-cloudtrail*',q='eventSource:ec2*').holt(0.5, 0.1, 0.1, 1h).lines(1).subtract(.es(index='cwl-cloudtrail*',q='eventSource:ec2*')).abs().if(lt, $thres, null, .es(index='cwl-cloudtrail*',q='eventSource:ec2*')).points(10,3,0).label('Anomaly'),\\n$actual, $prediction\",\"interval\":\"auto\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    }
+  },
+  {
+    "_id": "fa36c530-95db-11e8-99b4-556c4ec6d470",
+    "_type": "visualization",
+    "_source": {
+      "title": "Anomaly eventSource:iam",
+      "visState": "{\"title\":\"Anomaly eventSource:iam\",\"type\":\"timelion\",\"params\":{\"expression\":\"$thres=500,$actual=.es(index='cwl-cloudtrail*',q='eventSource:iam*').lines(1).label(Actual),$prediction=.es(index='cwl-cloudtrail*',q='eventSource:iam*').holt(0.5, 0.1, 0.1, 1h).lines(1).label(Prediction),.es(index='cwl-cloudtrail*',q='eventSource:iam*').holt(0.5, 0.1, 0.1, 1h).lines(1).subtract(.es(index='cwl-cloudtrail*',q='eventSource:iam*')).abs().if(lt, $thres, null, .es(index='cwl-cloudtrail*',q='eventSource:iam*')).points(10,3,0).label('Anomaly'),\\n$actual, $prediction\",\"interval\":\"auto\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    }
+  },
+  {
+    "_id": "4a985b50-95dd-11e8-b66a-fd48dbaa91bd",
+    "_type": "visualization",
+    "_source": {
+      "title": "Anomaly eventSource:rds",
+      "visState": "{\"title\":\"Anomaly eventSource:rds\",\"type\":\"timelion\",\"params\":{\"expression\":\"$thres=50,$actual=.es(index='cwl-cloudtrail*',q='eventSource:rds*').lines(1).label(Actual),$prediction=.es(index='cwl-cloudtrail*',q='eventSource:rds*').holt(0.5, 0.1, 0.1, 1h).lines(1).label(Prediction),.es(index='cwl-cloudtrail*',q='eventSource:rds*').holt(0.5, 0.1, 0.1, 1h).lines(1).subtract(.es(index='cwl-cloudtrail*',q='eventSource:rds*')).abs().if(lt, $thres, null, .es(index='cwl-cloudtrail*',q='eventSource:rds*')).points(10,3,0).label('Anomaly'),\\n$actual, $prediction\",\"interval\":\"auto\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    }
+  },
+  {
+    "_id": "765b58e0-95d9-11e8-99b4-556c4ec6d470",
+    "_type": "visualization",
+    "_source": {
+      "title": "Anomaly eventSource:s3",
+      "visState": "{\"title\":\"Anomaly eventSource:s3\",\"type\":\"timelion\",\"params\":{\"expression\":\"$thres=300,$actual=.es(index='cwl-cloudtrail*',q='eventSource:s3*').lines(1).label(Actual),$prediction=.es(index='cwl-cloudtrail*',q='eventSource:s3*').holt(0.5, 0.1, 0.1, 1h).lines(1).label(Prediction),.es(index='cwl-cloudtrail*',q='eventSource:s3*').holt(0.5, 0.1, 0.1, 1h).lines(1).subtract(.es(index='cwl-cloudtrail*',q='eventSource:s3*')).abs().if(lt, $thres, null, .es(index='cwl-cloudtrail*',q='eventSource:s3*')).points(10,3,0).label('Anomaly'),\\n$actual, $prediction\",\"interval\":\"auto\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    }
+  },
+  {
+    "_id": "e4a54420-95dc-11e8-99b4-556c4ec6d470",
+    "_type": "visualization",
+    "_source": {
+      "title": "Anomaly eventSource:sts",
+      "visState": "{\"title\":\"Anomaly eventSource:sts\",\"type\":\"timelion\",\"params\":{\"expression\":\"$thres=50,$actual=.es(index='cwl-cloudtrail*',q='eventSource:sts*').lines(1).label(Actual),$prediction=.es(index='cwl-cloudtrail*',q='eventSource:sts*').holt(0.5, 0.1, 0.1, 1h).lines(1).label(Prediction),.es(index='cwl-cloudtrail*',q='eventSource:sts*').holt(0.5, 0.1, 0.1, 1h).lines(1).subtract(.es(index='cwl-cloudtrail*',q='eventSource:sts*')).abs().if(lt, $thres, null, .es(index='cwl-cloudtrail*',q='eventSource:sts*')).points(10,3,0).label('Anomaly'),\\n$actual, $prediction\",\"interval\":\"auto\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    }
+  }
+]

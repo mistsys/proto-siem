@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "05a1faa0-95de-11e8-b66a-fd48dbaa91bd",
+    "_type": "dashboard",
+    "_source": {
+      "title": "Anomaly Dashboard",
+      "hits": 0,
+      "description": "",
+      "panelsJSON": "[{\"panelIndex\":\"2\",\"gridData\":{\"x\":0,\"y\":0,\"w\":6,\"h\":3,\"i\":\"2\"},\"id\":\"765b58e0-95d9-11e8-99b4-556c4ec6d470\",\"type\":\"visualization\",\"version\":\"6.2.3\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":6,\"y\":0,\"w\":6,\"h\":3,\"i\":\"3\"},\"version\":\"6.2.3\",\"type\":\"visualization\",\"id\":\"fa36c530-95db-11e8-99b4-556c4ec6d470\"},{\"panelIndex\":\"4\",\"gridData\":{\"x\":0,\"y\":3,\"w\":6,\"h\":3,\"i\":\"4\"},\"version\":\"6.2.3\",\"type\":\"visualization\",\"id\":\"52d5fee0-95dc-11e8-99b4-556c4ec6d470\"},{\"panelIndex\":\"5\",\"gridData\":{\"x\":6,\"y\":3,\"w\":6,\"h\":3,\"i\":\"5\"},\"version\":\"6.2.3\",\"type\":\"visualization\",\"id\":\"e4a54420-95dc-11e8-99b4-556c4ec6d470\"},{\"panelIndex\":\"6\",\"gridData\":{\"x\":0,\"y\":6,\"w\":6,\"h\":3,\"i\":\"6\"},\"version\":\"6.2.3\",\"type\":\"visualization\",\"id\":\"4a985b50-95dd-11e8-b66a-fd48dbaa91bd\"},{\"gridData\":{\"w\":6,\"h\":3,\"x\":6,\"y\":6,\"i\":\"7\"},\"version\":\"6.2.3\",\"panelIndex\":\"7\",\"type\":\"visualization\",\"id\":\"ca8d77a0-95dd-11e8-b66a-fd48dbaa91bd\"}]",
+      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
+      "version": 1,
+      "timeRestore": false,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  }
+]

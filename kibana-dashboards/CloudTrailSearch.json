@@ -1,0 +1,184 @@
+[
+  {
+    "_id": "Centralized-Logging",
+    "_type": "search",
+    "_source": {
+      "title": "Centralized Logging",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "@timestamp",
+        "@log_group"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"eb8deb30-8bb8-11e8-99b4-556c4ec6d470\",\"query\":{\"query\":{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"*\"}},\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "CloudTrail-eventClassifier-CONTROL_PLANE",
+    "_type": "search",
+    "_source": {
+      "title": "CloudTrail eventClassifier CONTROL_PLANE",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "userIdentity.type",
+        "eventName",
+        "userIdentity.userName",
+        "sourceIPAddress"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"4ed1c0e0-8bb9-11e8-b66a-fd48dbaa91bd\",\"query\":{\"query\":{\"query_string\":{\"query\":\"eventName:*policy* OR eventName:*attribute* OR eventName:*permission*\",\"analyze_wildcard\":true}},\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "CloudTrail-eventClassifier-DATA_PLANE",
+    "_type": "search",
+    "_source": {
+      "title": "CloudTrail eventClassifier DATA_PLANE",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "userIdentity.type",
+        "eventName",
+        "userIdentity.userName",
+        "sourceIPAddress"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"4ed1c0e0-8bb9-11e8-b66a-fd48dbaa91bd\",\"query\":{\"query\":{\"query_string\":{\"query\":\"eventName:*object* OR eventName:*bucket*\",\"analyze_wildcard\":true}},\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "CloudTrail-eventClassifier-MUTATING",
+    "_type": "search",
+    "_source": {
+      "title": "CloudTrail eventClassifier MUTATING",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "userIdentity.type",
+        "eventName",
+        "userIdentity.userName",
+        "sourceIPAddress"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"4ed1c0e0-8bb9-11e8-b66a-fd48dbaa91bd\",\"query\":{\"query\":{\"query_string\":{\"query\":\"eventName:*create* OR eventName:*delete* OR eventName:*modify* OR eventName:*add* OR eventName:*remove* OR eventName:*set* OR eventName:*update* OR eventName:*put*\",\"analyze_wildcard\":true}},\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "CloudTrail-eventClassifier-READ",
+    "_type": "search",
+    "_source": {
+      "title": "CloudTrail eventClassifier READ",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "userIdentity.type",
+        "eventName",
+        "userIdentity.userName",
+        "sourceIPAddress"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"4ed1c0e0-8bb9-11e8-b66a-fd48dbaa91bd\",\"query\":{\"query\":{\"query_string\":{\"query\":\"eventName:*get* OR eventName:*view* OR eventName:*list* OR eventName:*describe*\",\"analyze_wildcard\":true}},\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "CloudTrail-eventClassifier-SIDE_EFFECT",
+    "_type": "search",
+    "_source": {
+      "title": "CloudTrail eventClassifier SIDE_EFFECT",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "userIdentity.type",
+        "eventName",
+        "userIdentity.userName",
+        "sourceIPAddress"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"4ed1c0e0-8bb9-11e8-b66a-fd48dbaa91bd\",\"query\":{\"query\":{\"query_string\":{\"query\":\"eventName:*start* OR eventName:*stop* OR eventName:*export* OR eventName:*request* OR eventName:*resend* OR eventName:*cancel* OR eventName:*continue* OR eventName:*estimate* OR eventName:*execute* OR eventName:*preview*\",\"analyze_wildcard\":true}},\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "CloudTrailLogs",
+    "_type": "search",
+    "_source": {
+      "title": "CloudTrailLogs",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "eventName",
+        "eventSource",
+        "userIdentity.accountId",
+        "userIdentity.type",
+        "userIdentity.userName",
+        "sourceIPAddress"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"4ed1c0e0-8bb9-11e8-b66a-fd48dbaa91bd\",\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"query\":{\"query\":{\"query_string\":{\"query\":\"eventType:AwsApiCall\",\"analyze_wildcard\":true}},\"language\":\"lucene\"}}"
+      }
+    }
+  },
+  {
+    "_id": "Events-To-Check:-CONTROL_PLAN-ampersand-ampersand-(MUTATING-OR-SIDE_EFFECT)",
+    "_type": "search",
+    "_source": {
+      "title": "Events To Check: CONTROL_PLANE && (MUTATING OR SIDE_EFFECT)",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "_source"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\n  \"index\": \"4ed1c0e0-8bb9-11e8-b66a-fd48dbaa91bd\",\n  \"filter\": [],\n  \"highlight\": {\n    \"pre_tags\": [\n      \"@kibana-highlighted-field@\"\n    ],\n    \"post_tags\": [\n      \"@/kibana-highlighted-field@\"\n    ],\n    \"fields\": {\n      \"*\": {}\n    },\n    \"require_field_match\": false,\n    \"fragment_size\": 2147483647\n  },\n  \"query\": {\n    \"query\": {\n      \"query_string\": {\n        \"query\": \"eventName:*policy* OR eventName:*attribute* OR eventName:*permission* && (eventName:*create* OR eventName:*delete* OR eventName:*modify* OR eventName:*add* OR eventName:*remove* OR eventName:*set* OR eventName:*update* OR eventName:*put* OR eventName:*start* OR eventName:*stop* OR eventName:*export* OR eventName:*request* OR eventName:*resend* OR eventName:*cancel* OR eventName:*continue* OR eventName:*estimate* OR eventName:*execute* OR eventName:*preview*)\",\n        \"analyze_wildcard\": true\n      }\n    },\n    \"language\": \"lucene\"\n  }\n}"
+      }
+    }
+  }
+]

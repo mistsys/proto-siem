@@ -1,0 +1,165 @@
+[
+  {
+    "_id": "eni-serch",
+    "_type": "search",
+    "_source": {
+      "title": "eni serch",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "interface_id",
+        "action",
+        "srcaddr",
+        "dstport",
+        "bytes",
+        "packets"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"eb8deb30-8bb8-11e8-99b4-556c4ec6d470\",\"query\":{\"query\":{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"*\"}},\"language\":\"lucene\"},\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[]}"
+      }
+    }
+  },
+  {
+    "_id": "VPC-FLOW-LOG",
+    "_type": "search",
+    "_source": {
+      "title": "VPCFlowLogs",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "packets",
+        "SGID",
+        "VPC",
+        "inThreatFeed",
+        "direction",
+        "srcaddr",
+        "dstaddr",
+        "remedyStatus",
+        "bytes"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"eb8deb30-8bb8-11e8-99b4-556c4ec6d470\",\"query\":{\"query\":\"notification:vpcflowlog-*\",\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  },
+  {
+    "_id": "VPCFlowLogs:-Inbound",
+    "_type": "search",
+    "_source": {
+      "title": "VPCFlowLogs: Inbound",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "direction"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"eb8deb30-8bb8-11e8-99b4-556c4ec6d470\",\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"query\":{\"query\":\"notification:vpcflowlog-* AND direction:*inbound\",\"language\":\"lucene\"},\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  },
+  {
+    "_id": "VPCFlowLogs:-Inbound-Outbound",
+    "_type": "search",
+    "_source": {
+      "title": "VPCFlowLogs: Inbound Outbound",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "packets",
+        "SGID",
+        "VPC",
+        "inThreatFeed",
+        "direction",
+        "srcaddr",
+        "dstaddr",
+        "remedyStatus",
+        "bytes",
+        "action"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"eb8deb30-8bb8-11e8-99b4-556c4ec6d470\",\"query\":{\"query\":\"notification:vpcflowlog-* AND (direction:*outbound OR direction:*inbound)\",\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  },
+  {
+    "_id": "VPCFlowLogs:-Internal",
+    "_type": "search",
+    "_source": {
+      "title": "VPCFlowLogs: Internal",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "packets",
+        "SGID",
+        "VPC",
+        "inThreatFeed",
+        "direction",
+        "srcaddr",
+        "dstaddr",
+        "remedyStatus",
+        "bytes"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"eb8deb30-8bb8-11e8-99b4-556c4ec6d470\",\"query\":{\"query\":\"notification:vpcflowlog-* AND direction:*internal*\",\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  },
+  {
+    "_id": "VPCFlowLogs:-ThreatFeed",
+    "_type": "search",
+    "_source": {
+      "title": "VPCFlowLogs: ThreatFeed",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "packets",
+        "SGID",
+        "VPC",
+        "inThreatFeed",
+        "direction",
+        "srcaddr",
+        "dstaddr",
+        "remedyStatus",
+        "bytes"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"eb8deb30-8bb8-11e8-99b4-556c4ec6d470\",\"query\":{\"language\":\"lucene\",\"query\":\"notification:vpcflowlog* && inThreatFeed:true\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  }
+]

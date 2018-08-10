@@ -1,0 +1,73 @@
+[
+  {
+    "_id": "EC2-AUTH-LOGS",
+    "_type": "search",
+    "_source": {
+      "title": "EC2 AUTH LOGS",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "source",
+        "isSSHLog",
+        "logType",
+        "eventTimestamp",
+        "message"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"7ee11380-8bc8-11e8-b66a-fd48dbaa91bd\",\"query\":{\"language\":\"lucene\",\"query\":\"notification:authlog*\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  },
+  {
+    "_id": "EC2-AUTH-LOGS-FailedLogins",
+    "_type": "search",
+    "_source": {
+      "title": "EC2 AUTH LOGS FailedLogins",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "notification",
+        "isSSHLog",
+        "logType",
+        "source",
+        "user"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"7ee11380-8bc8-11e8-b66a-fd48dbaa91bd\",\"query\":{\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true,\"default_field\":\"*\"}},\"language\":\"lucene\"},\"filter\":[{\"meta\":{\"negate\":false,\"index\":\"cwl-*\",\"key\":\"logType\",\"value\":\"FailedLogin\",\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"params\":{\"query\":\"FailedLogin\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"logType\":{\"query\":\"FailedLogin\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}},{\"meta\":{\"index\":\"7ee11380-8bc8-11e8-b66a-fd48dbaa91bd\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"notification\",\"value\":\"authlog-\",\"params\":{\"query\":\"authlog-\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"notification\":{\"query\":\"authlog-\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  },
+  {
+    "_id": "SSH-Sudo-Attempts",
+    "_type": "search",
+    "_source": {
+      "title": "SSH Sudo Attempts",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "source",
+        "sudoCommand",
+        "user"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"7ee11380-8bc8-11e8-b66a-fd48dbaa91bd\",\"query\":{\"query\":\"notification:authlog-* && logType:sudo\",\"language\":\"lucene\"},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  }
+]
