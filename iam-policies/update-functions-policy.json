@@ -1,0 +1,18 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:Query",
+                "dynamodb:UpdateItem",
+                "dynamodb:Scan",
+                "dynamodb:PutItem"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        }
+    ]
+}
