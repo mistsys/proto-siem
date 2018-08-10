@@ -153,4 +153,11 @@ The above steps must be followed in a specific order for the Elastic Search to i
 
 Sumit Bajaj
 
-## Acknowledgements
+## Resources
+
+1. [how-to-optimize-and-visualize-your-security-groups](https://aws.amazon.com/blogs/security/how-to-optimize-and-visualize-your-security-groups/)
+2. [intrusion-detection-and-prevention-with-aws-lambda-and-dynamodb-streams](https://mysteriouscode.io/blog/intrusion-detection-and-prevention-with-aws-lambda-and-dynamodb-streams/)
+3. [how-to-facilitate-data-analysis-and-fulfill-security-requirements-by-using-centralized-flow-log-data](https://aws.amazon.com/blogs/security/how-to-facilitate-data-analysis-and-fulfill-security-requirements-by-using-centralized-flow-log-data/)
+4. [how-to-visualize-and-refine-your-networks-security-by-adding-security-group-ids-to-your-vpc-flow-logs](https://aws.amazon.com/blogs/security/how-to-visualize-and-refine-your-networks-security-by-adding-security-group-ids-to-your-vpc-flow-logs/)
+5. [classifying-api-calls[(https://github.com/monkeysecurity/aws_api_classifier)
+
