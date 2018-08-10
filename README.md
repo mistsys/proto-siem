@@ -25,21 +25,66 @@ The solution requires logs from all sources to be published to CloudWatch log gr
 
 ### Configuring DynamoDB table for GeoIP and Threat Feed data
 
-[Create a DynamoDB table] (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SampleData.CreateTables.html)  and name the table "centralized-logging-table". The schema requires "IPaddress" as the primary key.
+[Create a DynamoDB table](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SampleData.CreateTables.html)  and name the table "centralized-logging-table". The schema required is "IPaddress", type String as the primary key.
+
+### Configuring ElastiSearch Domain
+
+Create an ElasticSearch domain with Instance type and Instance number of your choice. It is best to have 3 instances or type m4.large.elasticsearch.
 
 ### Configuring Lambda Functions
 
-1. Ingestor functions [FunctionToIngestSSHLogs.py](https://github.com/mistsys/mist-centralized-logging/blob/master/FunctionToIngestSSHLogs.py), [FunctionToIngestVPCFlowLogs.py](https://github.com/mistsys/mist-centralized-logging/blob/master/FunctionToIngestVPCFlowLogs.py) are source specific lambda functions that consume logs from CloudWatch Log Groups and augment information further. This is similar to normalization of logs and modification of logs further to be sent to ELK stack.
+1. Ingestor functions [SIEMFunctionToIngestSSHLogs.py](https://github.com/mistsys/mist-centralized-logging/blob/master/lambda-functions/SIEMFunctionToIngestSSHLogs.py), [SIEMFunctionToIngestVPCFlowLogs.py](https://github.com/mistsys/mist-centralized-logging/blob/master/lambda-functions/SIEMFunctionToIngestVPCFlowLogs.py) are source specific lambda functions that consume logs from CloudWatch Log Groups and augment information further. This is similar to normalization of logs and modification of logs further to be sent to ELK stack.
 
-2. [FunctionToFetchGeoIPData.py](https://github.com/mistsys/mist-centralized-logging/blob/master/FunctionToFetchGeoIPData.py) is the IP lookup function that is called with an IP address as an argument from the above two lambda functions. This function also maintains the DynamoDB database that lists GeoIP information, ThreatFeed information for each IP as well as information if IP belongs to AWS.
+2. [SIEMFunctionToFetchGeoIPData.py](https://github.com/mistsys/mist-centralized-logging/blob/master/lambda-functions/SIEMFunctionToFetchGeoIPData.py) is the IP lookup function that is called with an IP address as an argument from the above two lambda functions. This function also maintains the DynamoDB database that lists GeoIP information, ThreatFeed information for each IP as well as information if IP belongs to AWS.
 
-3. [FunctionToUpdateThreatFeed.py](https://github.com/mistsys/mist-centralized-logging/blob/master/FunctionToUpdateThreatFeed.py) maintains Threat Feed data on the DynamoDB table and can be configured to run after evaluation. This can be a scheduled update that scans through all the IPs on the table and updates IP's on active threat feed.
+3. [SIEMFunctionToUpdateThreatFeed.py](https://github.com/mistsys/mist-centralized-logging/blob/master/lambda-functions/SIEMFunctionToUpdateThreatFeed.py) maintains Threat Feed data on the DynamoDB table and can be configured to run after evaluation. This can be a scheduled update that scans through all the IPs on the table and updates IP's on active threat feed.
 
-4. [FunctionForESDataRetention.py](https://github.com/mistsys/mist-centralized-logging/blob/master/FunctionForESDataRetention.py) Although there have been many approaches that are suggested for LogData retention, this solution explicitly makes use of a scheduled lambda function that looks for indexes on the ELK stack older than a predefined policy and deletes them. A better approach would be to ship old logs to an S3 bucket or AWS glacier.
+4. [SIEMFunctionForESDataRetention.py](https://github.com/mistsys/mist-centralized-logging/blob/master/lambda-functions/SIEMFunctionForESDataRetention.py) Although there have been many approaches that are suggested for LogData retention, this solution explicitly makes use of a scheduled lambda function that looks for indexes on the ELK stack older than a predefined policy and deletes them. A better approach would be to ship old logs to an S3 bucket or AWS glacier.
 
 5. Since we are working with three variety of log types, the design requires different Elastic Search indexes to be maintained for these types. Having different indexes helps with searching, query and maintaining logs as required by custom policies. The function autocreated when shipping logs to ElasticSearch requires a minor update to process logs and is provided. This function looks for a "notification" keyword in the logs and modifies the index of the document that is send to ElasticSearch.
 
 ```
+
+    function transform(payload) {
+    if (payload.messageType === 'CONTROL_MESSAGE') {
+        return null;
+    }
+
+    var bulkRequestBody = '';
+
+    payload.logEvents.forEach(function(logEvent) {
+        var timestamp = new Date(1 * logEvent.timestamp);
+        
+
+        // index name format: cwl-YYYY.MM.DD
+        var indexName = [
+            'cwl-'+fetchType(logEvent.message)+timestamp.getUTCFullYear(),              // year
+            ('0' + (timestamp.getUTCMonth() + 1)).slice(-2),  // month
+            ('0' + timestamp.getUTCDate()).slice(-2)          // day
+        ].join('.');
+
+        var source = buildSource(logEvent.message, logEvent.extractedFields);
+        source['@id'] = logEvent.id;
+        source['@timestamp'] = new Date(1 * logEvent.timestamp).toISOString();
+        source['@message'] = logEvent.message;
+        source['@owner'] = payload.owner;
+        source['@log_group'] = payload.logGroup;
+        source['@log_stream'] = payload.logStream;
+
+        
+        var action = { "index": {} };
+        action.index._index = indexName;
+        action.index._type = payload.logGroup;
+        action.index._id = logEvent.id;
+        
+        bulkRequestBody += [ 
+            JSON.stringify(action), 
+            JSON.stringify(source),
+        ].join('\n') + '\n';
+    });
+    return bulkRequestBody;
+    }
+
     function fetchType(message) {
     var log_type;
     var jsonSubString;
@@ -91,9 +136,18 @@ Steps for deploying Kibana Template
    
 After this step enable respective subsciptions, search through ES management console and create index for "authlog-","vpcflowlog-","cloudtrail-". Import the dashboard templates provided and visualize data. 
 
+## Lambda Subscriptions
+
+1. CloudTrail logs log-group on CloudWatch ships logs directly to the function that can be autocreated with the edit above, Use option "Subscribe to AWS Lambda" and choose filter pattern as CloudTrail Logs
+2. After configuring a CloudWatch log group to receive authentication logs, choose "Stream To AWS Lambda" option and select FunctionToIngestSSHLogs as the target. This function publishes logs to another log group on CloudWatch with the function name /aws/lambda/FunctionToIngestSSHLogs, Stream this to the Lambda function that ships logs to elastic search. Configure the filter as "notification"
+3. After configuring a CloudWatch log group to receive VPC Flow Logs, choose "Stream To AWS Lambda" option and select FunctionToIngestVPCFlowLogs as the target. This function publishes logs to another log group on CloudWatch with the function name /aws/lambda/FunctionToIngestVPCFlowLogs, Stream this to the Lambda function that ships logs to elastic search. Configure the filter as "notification"
+4. The Lambda functions SIEMFunctionToUpdateThreatFeed.py and SIEMFunctionToFetchGeoIPData.py require CloudWatch rules to be enabled that can trigger these functions on a scheduled basis.
+5. SIEMFunctionForESDataRetention.py requires additional policies that grant the lambda function access to make changes to the ES domain.
+6. If you choose to use the functionality provided by SIEMFunctionToIngestCloudWatchEvents.py, configure rules which listen for specific calls as listed in the function and this requires an IAM role to make changes to security group or the ACL.
+
 ## Additional Deployment Notes
 
-The above steps must be followed in a specific order for the Elastic Search to identify mapping associations correctly. The Threat Feed subscription can be customized further. GeoIP data requires subscription and this solution makes use of [IPStack](https://ipstack.com/documentation), for evaluation you can work with the free API Access Key that grants upto 10000 requests per month or a paid subscription can offer better options about IP reputation and be integrated into Threat Feed analysis.
+The above steps must be followed in a specific order for the Elastic Search to identify mapping associations correctly. The Threat Feed subscription can be customized further. GeoIP data requires subscription and this solution makes use of [IPStack](https://ipstack.com/documentation), for evaluation you can work with the free API Access Key that grants upto 10000 requests per month or a paid subscription can offer better options about IP reputation and be integrated into Threat Feed analysis. It is required for the templates to be set up on Kibana before shipping logs to ES.
 
 ## Contributors
 
