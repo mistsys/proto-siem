@@ -1,16 +1,3 @@
-'''
-FunctionToIngestVPCFlowLogs
-
-Lambda Function that gets triggered on the event of a VPC Flow Log receieved
-by CloudWatch. The function adds various fields to Flow Log.
-
-Citations:
-[1]:https://aws.amazon.com/blogs/security/how-to-optimize-and-visualize-your-security-groups/
-[2]:https://mysteriouscode.io/blog/intrusion-detection-and-prevention-with-aws-lambda-and-dynamodb-streams/
-[3]:https://aws.amazon.com/blogs/security/how-to-facilitate-data-analysis-and-fulfill-security-requirements-by-using-centralized-flow-log-data/
-[4]:https://aws.amazon.com/blogs/security/how-to-visualize-and-refine-your-networks-security-by-adding-security-group-ids-to-your-vpc-flow-logs/
-
-'''
 from __future__ import print_function
 import boto3
 import logging
@@ -210,9 +197,8 @@ def lambda_handler(event, context):
                 except:
                     logData['inThreatFeed']=False
                     
-                if DOREMEDY and logData['inThreatFeed']:
+            	if DOREMEDY and logData['inThreatFeed']:
                     logData['remedyStatus']=addToNACL(ipAddressToScan)
             
         
         print(json.dumps(logData))
-        return True
