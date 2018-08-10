@@ -31,6 +31,24 @@ The solution requires logs from all sources to be published to CloudWatch log gr
 
 Create an ElasticSearch domain with Instance type and Instance number of your choice. It is best to have 3 instances or type m4.large.elasticsearch.
 
+### Setting Up Kibana
+
+Steps for deploying Kibana Template
+
+  To install the Kibana Index Mapping:
+    
+    1. Use the Development Console in AWS ElasticSearch Kibana Console to access templates
+    
+    2. Run Command GET /_template to retrieve all available templates
+    
+    3. If reindexing is required use the command curl -XDELETE 'http://YOUR_ES_DOMAIN_ENDPOINT/cwl*/' to delete any previous
+       indexes
+    
+    4. Finally, Use PUT _template/template_1 and append the template data from KibanaTemplateVPCFlowLogs.json file and PUT _template/template_2 and append the template data from KibanaTemplateAuthLog.json file
+   
+   Note: This template is required for changing type of certain fields to the desired value which is not captured by
+   ES by default (location type as geo_point and packets type as long)
+   
 ### Configuring Lambda Functions
 
 1. Ingestor functions [SIEMFunctionToIngestSSHLogs.py](https://github.com/mistsys/mist-centralized-logging/blob/master/lambda-functions/SIEMFunctionToIngestSSHLogs.py), [SIEMFunctionToIngestVPCFlowLogs.py](https://github.com/mistsys/mist-centralized-logging/blob/master/lambda-functions/SIEMFunctionToIngestVPCFlowLogs.py) are source specific lambda functions that consume logs from CloudWatch Log Groups and augment information further. This is similar to normalization of logs and modification of logs further to be sent to ELK stack.
@@ -116,25 +134,7 @@ Create an ElasticSearch domain with Instance type and Instance number of your ch
 | FunctionToUpdateThreatFeed.py | Scheduled CloudWatch Rule Trigger | 10 sec | 128 MB |
 | FunctionForESDataRetention.py | Scheduled CloudWatch Rule Trigger | 10 sec | 128 MB |
 
-### Setting Up Kibana
 
-Steps for deploying Kibana Template
-
-  To install the Kibana Index Mapping:
-    
-    1. Use the Development Console in AWS ElasticSearch Kibana Console to access templates
-    
-    2. Run Command GET /_template to retrieve all available templates
-    
-    3. If reindexing is required use the command curl -XDELETE 'http://YOUR_ES_DOMAIN_ENDPOINT/cwl*/' to delete any previous
-       indexes
-    
-    4. Finally, Use PUT _template/template_1 and append the template data from KibanaTemplateVPCFlowLogs.json file and PUT _template/template_2 and append the template data from KibanaTemplateAuthLog.json file
-   
-   Note: This template is required for changing type of certain fields to the desired value which is not captured by
-   ES by default (location type as geo_point and packets type as long)
-   
-After this step enable respective subsciptions, search through ES management console and create index for "authlog-","vpcflowlog-","cloudtrail-". Import the dashboard templates provided and visualize data. 
 
 ## Lambda Subscriptions
 
@@ -145,6 +145,8 @@ After this step enable respective subsciptions, search through ES management con
 5. SIEMFunctionForESDataRetention.py requires additional policies that grant the lambda function access to make changes to the ES domain.
 6. If you choose to use the functionality provided by SIEMFunctionToIngestCloudWatchEvents.py, configure rules which listen for specific calls as listed in the function and this requires an IAM role to make changes to security group or the ACL.
 
+After this step enable respective subsciptions, search through ES management console and create index for "authlog-","vpcflowlog-","cloudtrail-". Import the dashboard templates provided and visualize data. 
+
 ## Additional Deployment Notes
 
 The above steps must be followed in a specific order for the Elastic Search to identify mapping associations correctly. The Threat Feed subscription can be customized further. GeoIP data requires subscription and this solution makes use of [IPStack](https://ipstack.com/documentation), for evaluation you can work with the free API Access Key that grants upto 10000 requests per month or a paid subscription can offer better options about IP reputation and be integrated into Threat Feed analysis. It is required for the templates to be set up on Kibana before shipping logs to ES.
@@ -153,4 +155,11 @@ The above steps must be followed in a specific order for the Elastic Search to i
 
 Sumit Bajaj
 
-## Acknowledgements
+## Resources
+
+1. [how-to-optimize-and-visualize-your-security-groups](https://aws.amazon.com/blogs/security/how-to-optimize-and-visualize-your-security-groups/)
+2. [intrusion-detection-and-prevention-with-aws-lambda-and-dynamodb-streams](https://mysteriouscode.io/blog/intrusion-detection-and-prevention-with-aws-lambda-and-dynamodb-streams/)
+3. [how-to-facilitate-data-analysis-and-fulfill-security-requirements-by-using-centralized-flow-log-data](https://aws.amazon.com/blogs/security/how-to-facilitate-data-analysis-and-fulfill-security-requirements-by-using-centralized-flow-log-data/)
+4. [how-to-visualize-and-refine-your-networks-security-by-adding-security-group-ids-to-your-vpc-flow-logs](https://aws.amazon.com/blogs/security/how-to-visualize-and-refine-your-networks-security-by-adding-security-group-ids-to-your-vpc-flow-logs/)
+5. [classifying-api-calls](https://github.com/monkeysecurity/aws_api_classifier)
+
