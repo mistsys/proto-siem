@@ -25,7 +25,7 @@ The solution requires logs from all sources to be published to CloudWatch log gr
 
 ### Configuring DynamoDB table for GeoIP and Threat Feed data
 
-[Create a DynamoDB table] (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SampleData.CreateTables.html)  and name the table "centralized-logging". The schema requires "IPaddress" as the primary key.
+[Create a DynamoDB table] (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SampleData.CreateTables.html)  and name the table "centralized-logging-table". The schema requires "IPaddress" as the primary key.
 
 ### Configuring Lambda Functions
 
