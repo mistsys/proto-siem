@@ -4,9 +4,9 @@
         "number_of_shards": "5",
         "number_of_replicas": "1"
   },
-  "index_patterns": ["cwl*"],
-  "mappings": {
-      "/aws/lambda/FunctionToIngestVPCFlowLogs": {
+  "index_patterns": ["vpcflowlog*"],
+"mappings": {
+      "/aws/lambda/SIEMFunctionToIngestVPCFlowLogs": {
         "properties": {
           "srcaddr": {
             "type": "keyword"
